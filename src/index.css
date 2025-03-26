@@ -45,6 +45,10 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --kiosk-green: 142 71% 45%;
+    --kiosk-red: 0 84% 60%;
+    --kiosk-blue: 210 100% 50%;
   }
 
   * {
@@ -86,5 +90,10 @@
 
   .kiosk-container {
     @apply flex flex-col items-center justify-center max-w-4xl mx-auto h-screen p-8;
+  }
+  
+  /* Touch keyboard styles */
+  .touch-keyboard {
+    @apply fixed bottom-0 left-0 right-0 pb-6 pt-4 px-4 bg-gray-100 border-t-2 border-gray-300 z-50;
   }
 }

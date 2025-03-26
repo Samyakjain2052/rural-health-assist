@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import VoiceGuidance from '@/components/VoiceGuidance';
 import Header from '@/components/Header';
+import TouchKeyboard from '@/components/TouchKeyboard';
 
 const AadhaarLogin: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [aadhaar, setAadhaar] = useState('');
+  const [showKeyboard, setShowKeyboard] = useState(false);
 
   const formatAadhaarNumber = (input: string) => {
     // Remove all non-numeric characters
@@ -31,6 +33,26 @@ const AadhaarLogin: React.FC = () => {
     setAadhaar(formattedAadhaar);
   };
 
+  const handleKeyPress = (key: string) => {
+    if (key === 'BACKSPACE') {
+      // Remove the last character
+      setAadhaar(prev => {
+        const withoutHyphens = prev.replace(/-/g, '');
+        if (withoutHyphens.length <= 1) return '';
+        const newValue = withoutHyphens.slice(0, -1);
+        return formatAadhaarNumber(newValue);
+      });
+    } else {
+      // Add the pressed key
+      setAadhaar(prev => {
+        const withoutHyphens = prev.replace(/-/g, '');
+        if (withoutHyphens.length >= 12) return prev; // Max 12 digits
+        const newValue = withoutHyphens + key;
+        return formatAadhaarNumber(newValue);
+      });
+    }
+  };
+
   const handleSubmit = () => {
     // Remove hyphens for validation
     const cleanAadhaar = aadhaar.replace(/-/g, '');
@@ -48,6 +70,10 @@ const AadhaarLogin: React.FC = () => {
   const playHelpPrompt = () => {
     // In a real app, this would play a detailed voice guidance
     console.log("Help guidance playing");
+  };
+
+  const handleFocus = () => {
+    setShowKeyboard(true);
   };
 
   return (
@@ -81,6 +107,7 @@ const AadhaarLogin: React.FC = () => {
               type="text"
               value={aadhaar}
               onChange={handleInputChange}
+              onFocus={handleFocus}
               placeholder="XXXX-XXXX-XXXX"
               className="kiosk-input w-full mb-4 text-center"
               maxLength={14} // 12 digits + 2 hyphens
@@ -90,7 +117,16 @@ const AadhaarLogin: React.FC = () => {
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
+          {showKeyboard && (
+            <TouchKeyboard 
+              onKeyPress={handleKeyPress} 
+              onSubmit={handleSubmit}
+              type="numeric"
+              showKeyboard={showKeyboard}
+            />
+          )}
+          
+          <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mt-4">
             <button 
               onClick={playHelpPrompt}
               className="kiosk-button-large kiosk-button-red order-2 sm:order-1"
