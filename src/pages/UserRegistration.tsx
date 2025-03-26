@@ -1,12 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import VoiceGuidance from '@/components/VoiceGuidance';
 import Header from '@/components/Header';
+import TouchKeyboard from '@/components/TouchKeyboard';
 
 const UserRegistration: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -15,6 +16,13 @@ const UserRegistration: React.FC = () => {
     gender: '',
     mobile: ''
   });
+
+  const [activeField, setActiveField] = useState<string | null>(null);
+  const [keyboardType, setKeyboardType] = useState<'numeric' | 'alphanumeric' | 'hindi'>('alphanumeric');
+
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const ageInputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -53,11 +61,54 @@ const UserRegistration: React.FC = () => {
     navigate('/returning-user');
   };
 
+  const handleFocus = (field: string, type: 'numeric' | 'alphanumeric' | 'hindi') => {
+    setActiveField(field);
+    setKeyboardType(type);
+  };
+
+  const handleBlur = () => {
+    // We don't immediately set activeField to null to prevent the keyboard from disappearing
+    // when the user taps a key (which would blur the input)
+    setTimeout(() => {
+      // Only blur if the active element is not an input
+      if (document.activeElement?.tagName !== 'INPUT') {
+        setActiveField(null);
+      }
+    }, 100);
+  };
+
+  const handleKeyPress = (value: string) => {
+    if (!activeField) return;
+    
+    if (value === 'BACKSPACE') {
+      // Handle backspace
+      setFormData(prev => ({
+        ...prev,
+        [activeField]: prev[activeField as keyof typeof prev].slice(0, -1)
+      }));
+    } else {
+      // Handle normal character input
+      setFormData(prev => ({
+        ...prev,
+        [activeField]: prev[activeField as keyof typeof prev] + value
+      }));
+    }
+
+    // Re-focus the input after typing
+    if (activeField === 'name' && nameInputRef.current) {
+      nameInputRef.current.focus();
+    } else if (activeField === 'age' && ageInputRef.current) {
+      ageInputRef.current.focus();
+    } else if (activeField === 'mobile' && mobileInputRef.current) {
+      mobileInputRef.current.focus();
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-6 pb-40">
         <div className="w-full max-w-lg flex flex-col items-center gap-6">
           <h1 className="kiosk-large-text text-center font-hindi mb-4">
             {t('पंजीकरण फॉर्म', 'Registration Form')}
@@ -73,8 +124,11 @@ const UserRegistration: React.FC = () => {
                 <input
                   type="text"
                   name="name"
+                  ref={nameInputRef}
                   value={formData.name}
                   onChange={handleInputChange}
+                  onFocus={() => handleFocus('name', language === 'hindi' ? 'hindi' : 'alphanumeric')}
+                  onBlur={handleBlur}
                   className="kiosk-input flex-1"
                   placeholder={t('अपना नाम दर्ज करें', 'Enter your name')}
                 />
@@ -115,8 +169,11 @@ const UserRegistration: React.FC = () => {
                 <input
                   type="number"
                   name="age"
+                  ref={ageInputRef}
                   value={formData.age}
                   onChange={handleInputChange}
+                  onFocus={() => handleFocus('age', 'numeric')}
+                  onBlur={handleBlur}
                   className="kiosk-input flex-1 text-center"
                   placeholder="0"
                   min="0"
@@ -190,8 +247,11 @@ const UserRegistration: React.FC = () => {
               <input
                 type="tel"
                 name="mobile"
+                ref={mobileInputRef}
                 value={formData.mobile}
                 onChange={handleInputChange}
+                onFocus={() => handleFocus('mobile', 'numeric')}
+                onBlur={handleBlur}
                 className="kiosk-input w-full"
                 placeholder={t('10 अंकों का मोबाइल नंबर', '10-digit mobile number')}
                 maxLength={10}
@@ -216,6 +276,14 @@ const UserRegistration: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Touch Keyboard */}
+      <TouchKeyboard 
+        onKeyPress={handleKeyPress}
+        type={keyboardType}
+        showKeyboard={activeField !== null}
+        onSubmit={() => setActiveField(null)}
+      />
     </div>
   );
 };
