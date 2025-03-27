@@ -1,22 +1,25 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Doctor } from '@/utils/doctorUtils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Mic } from 'lucide-react';
 
 interface DoctorCardProps {
   doctor: Doctor;
   onSelect: (doctor: Doctor) => void;
+  isSelected?: boolean;
 }
 
-const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onSelect }) => {
+const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onSelect, isSelected = false }) => {
   const { t } = useLanguage();
   
   return (
     <Card 
-      className={`cursor-pointer transition-all hover:shadow-md ${
+      className={`cursor-pointer transition-all ${
+        isSelected ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'
+      } ${
         doctor.availability === 'available' 
           ? 'border-green-400 hover:border-green-500' 
           : 'border-orange-300 hover:border-orange-400'
@@ -74,6 +77,15 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onSelect }) => {
                   : t('व्यस्त', 'Busy')}
               </Badge>
             </div>
+            
+            {isSelected && (
+              <div className="mt-2 flex justify-center">
+                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                  <Mic size={14} />
+                  {t('वीडियो कॉल के लिए तैयार', 'Ready for video call')}
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
