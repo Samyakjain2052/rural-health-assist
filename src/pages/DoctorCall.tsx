@@ -1,13 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import VoiceGuidance from '@/components/VoiceGuidance';
 import Header from '@/components/Header';
+import { Doctor } from '@/utils/doctorUtils';
 
 const DoctorCall: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get doctor from location state
+  const doctor = location.state?.doctor as Doctor | undefined;
+  const diagnosis = location.state?.diagnosis;
+  const symptoms = location.state?.symptoms || [];
+  
   const [callStatus, setCallStatus] = useState<'connecting' | 'connected' | 'completed'>('connecting');
   const [timer, setTimer] = useState(0);
   const [prescription, setPrescription] = useState<string | null>(null);
@@ -68,15 +76,31 @@ const DoctorCall: React.FC = () => {
           {callStatus === 'connecting' && (
             <>
               <div className="animate-pulse-soft flex flex-col items-center gap-4">
-                <div className="p-4 bg-blue-50 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
+                <div className="p-4 bg-blue-50 rounded-full relative">
+                  {doctor?.avatarUrl ? (
+                    <img 
+                      src={doctor.avatarUrl} 
+                      alt={doctor.name}
+                      className="w-16 h-16 rounded-full"
+                    />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                    </svg>
+                  )}
                 </div>
                 
                 <h1 className="kiosk-large-text text-center font-hindi">
-                  {t('डॉक्टर से जुड़ रहे हैं', 'Connecting to Doctor')}
+                  {doctor 
+                    ? t(`${doctor.name} से जुड़ रहे हैं`, `Connecting to ${doctor.name}`) 
+                    : t('डॉक्टर से जुड़ रहे हैं', 'Connecting to Doctor')}
                 </h1>
+                
+                {diagnosis && (
+                  <p className="text-center text-gray-600 font-hindi">
+                    {t(`निदान: ${diagnosis}`, `Diagnosis: ${diagnosis}`)}
+                  </p>
+                )}
                 
                 <div className="flex justify-center items-center gap-2 mt-4">
                   <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></div>
@@ -91,19 +115,42 @@ const DoctorCall: React.FC = () => {
             <>
               <div className="flex flex-col items-center gap-4">
                 <div className="p-4 bg-green-50 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
+                  {doctor?.avatarUrl ? (
+                    <img 
+                      src={doctor.avatarUrl} 
+                      alt={doctor.name}
+                      className="w-16 h-16 rounded-full"
+                    />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                    </svg>
+                  )}
                 </div>
                 
                 <h1 className="kiosk-large-text text-center font-hindi">
-                  {t('डॉक्टर से बात चल रही है', 'Call in Progress')}
+                  {doctor 
+                    ? t(`${doctor.name} से बात चल रही है`, `Call with ${doctor.name} in Progress`) 
+                    : t('डॉक्टर से बात चल रही है', 'Call in Progress')}
                 </h1>
                 
                 <div className="bg-gray-100 px-6 py-3 rounded-full text-2xl font-mono">
                   ⏱ {formatTime(timer)}
                 </div>
               </div>
+              
+              {symptoms.length > 0 && (
+                <div className="bg-gray-50 p-4 rounded-xl w-full">
+                  <h3 className="font-medium mb-2 font-hindi text-center">
+                    {t('आपके बताए लक्षण:', 'Your Reported Symptoms:')}
+                  </h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    {symptoms.map((symptom: string, index: number) => (
+                      <li key={index} className="font-hindi">{symptom}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               
               <div className="mt-6 w-full">
                 <button 
@@ -192,16 +239,24 @@ const DoctorCall: React.FC = () => {
           <VoiceGuidance
             hindiPrompt={
               callStatus === 'connecting'
-                ? "डॉक्टर से जुड़ रहे हैं, कृपया प्रतीक्षा करें।"
+                ? doctor 
+                  ? `${doctor.name} से जुड़ रहे हैं, कृपया प्रतीक्षा करें।`
+                  : "डॉक्टर से जुड़ रहे हैं, कृपया प्रतीक्षा करें।"
                 : callStatus === 'connected'
-                  ? "डॉक्टर आपसे बात करेंगे। कॉल खत्म करने के लिए लाल बटन दबाएँ।"
+                  ? doctor
+                    ? `${doctor.name} आपसे बात करेंगे। कॉल खत्म करने के लिए लाल बटन दबाएँ।`
+                    : "डॉक्टर आपसे बात करेंगे। कॉल खत्म करने के लिए लाल बटन दबाएँ।"
                   : "आपका प्रिस्क्रिप्शन तैयार है। इसे दवा की दुकान पर दिखाएँ।"
             }
             englishPrompt={
               callStatus === 'connecting'
-                ? "Connecting to the doctor, please wait."
+                ? doctor
+                  ? `Connecting to ${doctor.name}, please wait.`
+                  : "Connecting to the doctor, please wait."
                 : callStatus === 'connected'
-                  ? "The doctor will talk to you. Press the red button to end the call."
+                  ? doctor
+                    ? `${doctor.name} will talk to you. Press the red button to end the call.`
+                    : "The doctor will talk to you. Press the red button to end the call."
                   : "Your prescription is ready. Show it at the pharmacy."
             }
           />

@@ -7,7 +7,16 @@ import Header from '@/components/Header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem, 
+  CarouselNext, 
+  CarouselPrevious 
+} from "@/components/ui/carousel";
 import { predictDiseaseFromSymptoms, getAllCommonSymptoms } from '@/utils/medicalAssistant';
+import { getDoctorsForDisease, type Doctor } from '@/utils/doctorUtils';
+import DoctorCard from '@/components/DoctorCard';
 
 const Diagnosis: React.FC = () => {
   const { t } = useLanguage();
@@ -24,22 +33,29 @@ const Diagnosis: React.FC = () => {
     description: string;
     matchingSymptoms?: string[];
   } | null>(null);
+  
+  const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([]);
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
 
   // Use the ML model to predict the disease based on symptoms
   useEffect(() => {
     if (symptoms.length > 0) {
       // This simulates the prediction from the ML model
-      // In a real app, this would be an API call to your ML service
-      setTimeout(() => {
-        const predictionResult = predictDiseaseFromSymptoms(symptoms);
-        
-        setPrediction({
-          disease: t(predictionResult.predictedDisease, predictionResult.predictedDisease),
-          confidence: predictionResult.confidence,
-          description: t(predictionResult.description, predictionResult.description),
-          matchingSymptoms: predictionResult.matchingSymptoms
-        });
-      }, 1000);
+      const predictionResult = predictDiseaseFromSymptoms(symptoms);
+      
+      const result = {
+        disease: t(predictionResult.predictedDisease, predictionResult.predictedDisease),
+        confidence: predictionResult.confidence,
+        description: t(predictionResult.description, predictionResult.description),
+        matchingSymptoms: predictionResult.matchingSymptoms
+      };
+      
+      setPrediction(result);
+      
+      // Get relevant doctors for this disease
+      const doctors = getDoctorsForDisease(predictionResult.predictedDisease);
+      setAvailableDoctors(doctors);
+      
     } else if (noneSelected) {
       // If "None of the above" was selected but no symptoms were provided,
       // we display a message about insufficient information
@@ -51,11 +67,26 @@ const Diagnosis: React.FC = () => {
           'Not enough symptom information provided. Please provide more details or consult a healthcare professional.'
         )
       });
+      
+      // Set generic doctors for uncertain conditions
+      const doctors = getDoctorsForDisease("General");
+      setAvailableDoctors(doctors);
     }
   }, [t, symptoms, noneSelected]);
 
+  const handleDoctorSelect = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+  };
+
   const handleCallDoctor = () => {
-    navigate('/doctor-call');
+    // Navigate to doctor call with the selected doctor
+    navigate('/doctor-call', { 
+      state: { 
+        doctor: selectedDoctor,
+        diagnosis: prediction?.disease,
+        symptoms: symptoms
+      } 
+    });
   };
 
   const handleHomeRemedies = () => {
@@ -169,6 +200,44 @@ const Diagnosis: React.FC = () => {
             </Card>
           )}
           
+          {availableDoctors.length > 0 && (
+            <div className="w-full">
+              <h2 className="kiosk-medium-text text-center font-hindi mb-4">
+                {t('उपलब्ध डॉक्टर', 'Available Doctors')}
+              </h2>
+              
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {availableDoctors.map((doctor) => (
+                    <CarouselItem key={doctor.id}>
+                      <DoctorCard 
+                        doctor={doctor} 
+                        onSelect={handleDoctorSelect}
+                      />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                {availableDoctors.length > 1 && (
+                  <>
+                    <CarouselPrevious className="left-0" />
+                    <CarouselNext className="right-0" />
+                  </>
+                )}
+              </Carousel>
+              
+              {selectedDoctor && (
+                <div className="mt-4 p-3 bg-green-50 rounded-lg text-center">
+                  <p className="font-hindi">
+                    {t(
+                      `आपने ${selectedDoctor.name} को चुना है`,
+                      `You've selected ${selectedDoctor.name}`
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          
           <h2 className="kiosk-medium-text text-center font-hindi mt-4">
             {t('क्या करें?', 'What to do?')}
           </h2>
@@ -176,12 +245,17 @@ const Diagnosis: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-6 w-full">
             <button 
               onClick={handleCallDoctor}
-              className="kiosk-button-large kiosk-button-red flex-1"
+              className={`kiosk-button-large ${selectedDoctor ? 'kiosk-button-red' : 'bg-gray-400'} flex-1`}
+              disabled={!selectedDoctor}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
               </svg>
-              <span className="font-hindi">{t('डॉक्टर से बात करें', 'Call Doctor')}</span>
+              <span className="font-hindi">
+                {selectedDoctor 
+                  ? t(`${selectedDoctor.name} से बात करें`, `Call ${selectedDoctor.name}`) 
+                  : t('डॉक्टर चुनें', 'Select a Doctor')}
+              </span>
             </button>
             
             <button 
@@ -197,8 +271,12 @@ const Diagnosis: React.FC = () => {
           </div>
           
           <VoiceGuidance
-            hindiPrompt="डॉक्टर से बात करने के लिए लाल बटन दबाएँ।"
-            englishPrompt="Press the red button to talk to a doctor."
+            hindiPrompt={selectedDoctor 
+              ? `डॉक्टर ${selectedDoctor.name} से बात करने के लिए लाल बटन दबाएँ।` 
+              : "डॉक्टर से बात करने के लिए पहले डॉक्टर का चयन करें।"}
+            englishPrompt={selectedDoctor 
+              ? `Press the red button to talk to Dr. ${selectedDoctor.name}.` 
+              : "Please select a doctor first."}
           />
         </div>
       </div>
