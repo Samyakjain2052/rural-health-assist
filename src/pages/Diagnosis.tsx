@@ -10,10 +10,11 @@ const Diagnosis: React.FC = () => {
   const navigate = useNavigate();
   
   // In a real app, you would get the symptoms from state/context
-  // For this demo, we'll use hardcoded symptoms
+  // For this demo, we'll use hardcoded symptoms that simulate ML model output
   const symptoms = [
     t('बुखार', 'Fever'),
-    t('सिरदर्द', 'Headache')
+    t('सिरदर्द', 'Headache'),
+    t('थकान या कमजोरी', 'Fatigue or weakness')
   ];
 
   const handleCallDoctor = () => {
