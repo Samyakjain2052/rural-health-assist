@@ -7,40 +7,52 @@ import Header from '@/components/Header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { predictDiseaseFromSymptoms, getAllCommonSymptoms } from '@/utils/medicalAssistant';
 
 const Diagnosis: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Get symptoms from location state
+  const symptoms = location.state?.symptoms || [];
+  const noneSelected = location.state?.noneSelected || false;
+  
   const [prediction, setPrediction] = useState<{
     disease: string;
     confidence: number;
     description: string;
+    matchingSymptoms?: string[];
   } | null>(null);
-  
-  // In a real app, you would get the symptoms from state/context
-  // For this demo, we'll use hardcoded symptoms that simulate ML model output
-  const symptoms = [
-    t('बुखार', 'Fever'),
-    t('सिरदर्द', 'Headache'),
-    t('थकान या कमजोरी', 'Fatigue or weakness')
-  ];
 
-  // Simulate ML model prediction
+  // Use the ML model to predict the disease based on symptoms
   useEffect(() => {
-    // This simulates the prediction from the ML model
-    // In a real app, this would be an API call to your ML service
-    setTimeout(() => {
+    if (symptoms.length > 0) {
+      // This simulates the prediction from the ML model
+      // In a real app, this would be an API call to your ML service
+      setTimeout(() => {
+        const predictionResult = predictDiseaseFromSymptoms(symptoms);
+        
+        setPrediction({
+          disease: t(predictionResult.predictedDisease, predictionResult.predictedDisease),
+          confidence: predictionResult.confidence,
+          description: t(predictionResult.description, predictionResult.description),
+          matchingSymptoms: predictionResult.matchingSymptoms
+        });
+      }, 1000);
+    } else if (noneSelected) {
+      // If "None of the above" was selected but no symptoms were provided,
+      // we display a message about insufficient information
       setPrediction({
-        disease: t('वायरल बुखार', 'Viral Fever'),
-        confidence: 85,
+        disease: t('अनिश्चित', 'Uncertain'),
+        confidence: 0,
         description: t(
-          'एक वायरल संक्रमण जो शरीर के तापमान को बढ़ाता है और अन्य लक्षण पैदा करता है।',
-          'A viral infection that raises body temperature and produces other symptoms.'
+          'पर्याप्त लक्षण जानकारी प्रदान नहीं की गई है। कृपया अधिक विवरण प्रदान करें या स्वास्थ्य पेशेवर से परामर्श करें।',
+          'Not enough symptom information provided. Please provide more details or consult a healthcare professional.'
         )
       });
-    }, 1000);
-  }, [t]);
+    }
+  }, [t, symptoms, noneSelected]);
 
   const handleCallDoctor = () => {
     navigate('/doctor-call');
@@ -82,11 +94,24 @@ const Diagnosis: React.FC = () => {
           </div>
           
           <div className="bg-gray-50 p-6 rounded-xl w-full">
-            <ul className="list-disc list-inside space-y-2">
-              {symptoms.map((symptom, index) => (
-                <li key={index} className="text-xl font-hindi">{symptom}</li>
-              ))}
-            </ul>
+            {symptoms.length > 0 ? (
+              <ul className="list-disc list-inside space-y-2">
+                {symptoms.map((symptom: string, index: number) => (
+                  <li key={index} className="text-xl font-hindi">{symptom}</li>
+                ))}
+              </ul>
+            ) : noneSelected ? (
+              <p className="text-xl text-center font-hindi text-orange-600">
+                {t(
+                  'आपने "कोई नहीं" का चयन किया है, लेकिन कोई अन्य लक्षण नहीं चुना।',
+                  'You selected "None", but didn\'t choose any other symptoms.'
+                )}
+              </p>
+            ) : (
+              <p className="text-xl text-center font-hindi">
+                {t('कोई लक्षण नहीं चुना गया', 'No symptoms selected')}
+              </p>
+            )}
           </div>
           
           {prediction && (
@@ -100,10 +125,29 @@ const Diagnosis: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xl font-hindi">{prediction.disease}</span>
-                    <span className="text-lg font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    <span className={`text-lg font-medium px-2 py-1 rounded ${
+                      prediction.confidence > 70 
+                        ? 'bg-green-100 text-green-800' 
+                        : prediction.confidence > 40 
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                    }`}>
                       {prediction.confidence}% {t('संभावना', 'Confidence')}
                     </span>
                   </div>
+                  
+                  {prediction.matchingSymptoms && prediction.matchingSymptoms.length > 0 && (
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <h3 className="font-medium mb-2 font-hindi">
+                        {t('मेल खाते लक्षण:', 'Matching Symptoms:')}
+                      </h3>
+                      <ul className="list-disc list-inside">
+                        {prediction.matchingSymptoms.map((symptom, index) => (
+                          <li key={index} className="font-hindi">{symptom}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   
                   <Alert>
                     <AlertTitle>{t('विवरण', 'Description')}</AlertTitle>
