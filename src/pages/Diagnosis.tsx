@@ -1,13 +1,22 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import VoiceGuidance from '@/components/VoiceGuidance';
 import Header from '@/components/Header';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Diagnosis: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [prediction, setPrediction] = useState<{
+    disease: string;
+    confidence: number;
+    description: string;
+  } | null>(null);
   
   // In a real app, you would get the symptoms from state/context
   // For this demo, we'll use hardcoded symptoms that simulate ML model output
@@ -16,6 +25,22 @@ const Diagnosis: React.FC = () => {
     t('सिरदर्द', 'Headache'),
     t('थकान या कमजोरी', 'Fatigue or weakness')
   ];
+
+  // Simulate ML model prediction
+  useEffect(() => {
+    // This simulates the prediction from the ML model
+    // In a real app, this would be an API call to your ML service
+    setTimeout(() => {
+      setPrediction({
+        disease: t('वायरल बुखार', 'Viral Fever'),
+        confidence: 85,
+        description: t(
+          'एक वायरल संक्रमण जो शरीर के तापमान को बढ़ाता है और अन्य लक्षण पैदा करता है।',
+          'A viral infection that raises body temperature and produces other symptoms.'
+        )
+      });
+    }, 1000);
+  }, [t]);
 
   const handleCallDoctor = () => {
     navigate('/doctor-call');
@@ -63,6 +88,42 @@ const Diagnosis: React.FC = () => {
               ))}
             </ul>
           </div>
+          
+          {prediction && (
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle className="text-center font-hindi">
+                  {t('संभावित निदान', 'Possible Diagnosis')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl font-hindi">{prediction.disease}</span>
+                    <span className="text-lg font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      {prediction.confidence}% {t('संभावना', 'Confidence')}
+                    </span>
+                  </div>
+                  
+                  <Alert>
+                    <AlertTitle>{t('विवरण', 'Description')}</AlertTitle>
+                    <AlertDescription className="font-hindi">
+                      {prediction.description}
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <Alert variant="destructive">
+                    <AlertDescription className="font-hindi">
+                      {t(
+                        'यह एक चिकित्सा निदान नहीं है। कृपया सही निदान के लिए स्वास्थ्य पेशेवर से परामर्श करें।',
+                        'This is not a medical diagnosis. Please consult a healthcare professional for proper diagnosis.'
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           <h2 className="kiosk-medium-text text-center font-hindi mt-4">
             {t('क्या करें?', 'What to do?')}
